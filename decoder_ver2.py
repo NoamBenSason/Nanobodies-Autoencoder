@@ -305,21 +305,3 @@ def plot_val_train_loss(history):
 #     tf.keras.models.save_model(model, save_dir + model_name)
 #     tf.keras.backend.clear_session()
 
-
-def part3():
-    model = tf.keras.models.load_model(save_dir + model_name)
-    input = utils.generate_input("6xw6/6xw6.pdb")
-    prediction = model.predict(input[None, :, :])
-    seq = "VQLQESGGGLVQAGDSLRVSCAASGRTISSSPMGWFRQAPGKEREFVAAISGNGGNTYYLDSVKGRFTTSRDNAKNTVYLQLNNLKPEDTAIYYCAARSRFSAMHLAYRRLVDYDDWGQGTQVTVS"
-    utils.matrix_to_pdb(seq, prediction[0, :, :], "prediction_6xw6_solar5")
-
-
-def main():
-    # sweep_id = wandb.sweep(get_config(), project="BioEx4_5",
-    #                          entity="avishai-elma")
-    #   wandb.agent(sweep_id, models_selection, count=1000)
-    train()
-
-
-if __name__ == '__main__':
-    main()
