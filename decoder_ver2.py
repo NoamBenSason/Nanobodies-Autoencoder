@@ -20,8 +20,6 @@ Original file is located at
 import tensorflow as tf
 from tensorflow.keras import layers
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import KFold
 # import wandb
 from datetime import datetime
 
@@ -40,7 +38,7 @@ import utils
 # number of ResNet blocks for the first ResNet and the kernel size.
 RESNET_1_BLOCKS = 1
 RESNET_1_KERNEL_SIZE = 9
-RESNET_1_KERNEL_NUM = 16
+RESNET_1_KERNEL_NUM = 15
 
 ###############################################################################
 #                                                                             #

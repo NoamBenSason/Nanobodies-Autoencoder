@@ -3,16 +3,18 @@ import tensorflow as tf
 import utils
 from utils import matrix_to_pdb
 import datetime
-from encoder_ver1 import build_encoder
+from encoder_ver1 import build_encoder as be1
+from encoder_ver2 import build_encoder as be2
+from encoder_ver3 import build_encoder as be3
 from decoder_ex4 import build_decoder
 import wandb
 
-
+VER_DICT = {1: be1, 2: be2, 3: be3}
 
 ######################## Defualt Params ####################
 RESNET_1_BLOCKS = 1
 RESNET_1_KERNEL_SIZE = 9
-RESNET_1_KERNEL_NUM = 16
+RESNET_1_KERNEL_NUM = 15
 
 RESNET_2_BLOCKS = 5
 RESNET_2_KERNEL_SIZE = 5  # good start may be 3/5
@@ -36,8 +38,9 @@ CLIP = 1
 save_dir = "BestFits/"
 model_name = "selected_model2_polar_5"
 
+
 def get_time():
-    now = datetime.now()
+    now = datetime.time()
     return now.strftime("%d-%m-%Y__%H-%M-%S")
 
 
@@ -57,12 +60,14 @@ def get_default_config():
                     'LOSS_3D_W': LOSS_3D_W,
                     'LOSS_SEQ_W': LOSS_SEQ_W,
                     'CLIP': CLIP,
-                    'regularized':'vanilla',
+                    'regularized': 'vanilla',
                     'DROP_OUT_TYPE': 'vanilla',
                     'metric': {'name': 'loss', 'goal': 'minimize'},
+                    'VER': 3,
                     'name': f"BioEx4_{get_time()}"}
 
     return sweep_config
+
 
 def get_config():
     sweep_config = {}
@@ -78,8 +83,7 @@ def get_config():
     param_dict = {  # todo add more for decoder
         'RESNET_1_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
         'RESNET_1_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
-        'RESNET_1_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
-                                'max': 64},
+        'RESNET_1_KERNEL_NUM': {'value': 15},
         'RESNET_2_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
         'RESNET_2_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
         'RESNET_2_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
@@ -95,11 +99,13 @@ def get_config():
         'CLIP': {'distribution': 'uniform', 'min': 0.9, 'max': 1.1},
         'regularized': {'values': ["vanilla", "orthogonal", "l2"]},
         'DROP_OUT_TYPE': {'values': ["vanilla", "gaussian"]},
+        'VER': {'values': [1, 2, 3]}
 
     }
 
     sweep_config['parameters'] = param_dict
     return sweep_config
+
 
 def check_out_single_sample(model):
     test_sample = utils.generate_label("1A2Y_1.pdb")
@@ -117,12 +123,15 @@ def hardmax(x: np.ndarray, axis: int = -1) -> np.ndarray:
     np.put_along_axis(y, np.expand_dims(x_argmax, axis=axis), 1, axis=axis)
     return y
 
+
 class WandbCallback(tf.keras.callbacks.Callback):
     def __init__(self):
         super(WandbCallback, self).__init__()
 
     def on_epoch_end(self, epoch, logs=None):
-        wandb.log({'train_loss': logs['loss'], 'train_mse_loss': logs['dense_loss'], 'train_seq_loss': logs['seq_dense_loss']})
+        wandb.log({'train_loss': logs['loss'], 'train_mse_loss': logs['dense_loss'],
+                   'train_seq_loss': logs['seq_dense_loss']})
+
 
 def train(config=None):
     if config is None:
@@ -140,8 +149,8 @@ def train(config=None):
         model_name = run.name
 
         # _______________building model_______________
-        inputs, enc_out = build_encoder(config)
-        dec_out = build_decoder(enc_out,config)
+        inputs, enc_out = VER_DICT[config["VER"]](config)
+        dec_out = build_decoder(enc_out, config)
         model = tf.keras.Model(inputs=inputs, outputs=[dec_out, enc_out])
 
         my_optimizer = tf.keras.optimizers.Adam(learning_rate=config['LR'], clipnorm=config['CLIP'])
@@ -169,6 +178,6 @@ def train(config=None):
 
 
 if __name__ == '__main__':
-    sweep_id = wandb.sweep(get_config(), project="Hackaton_1", entity="noambs")
+    sweep_id = wandb.sweep(get_config(), project="Hackaton_2", entity="noambs")
     wandb.agent(sweep_id, train, count=1000)
     # train()

@@ -5,10 +5,9 @@
 #SBATCH --time=8:0:0
 
 
-source /cs/usr/noam_bs97/3D-Hackton-SeqDesign/hacktonenv/bin/activate
-module load tensorflow/2.5.0
-module load cuda/11.3
-
+source /cs/usr/noam_bs97/PycharmProjects/pythonProject/venv/test/bin/activate.csh
+module load cuda/11.4
+module load cudnn/8.2.2
 
 cd /cs/usr/noam_bs97/3D-Hackton-SeqDesign
 python3 train_network_wandb.py
