@@ -1,4 +1,4 @@
-# Version 5: changed added regularization. Added kernel_regularizer='l2' to line 165.
+# Version 5: added orthogonal regularization to dense layer.
 
 # -*- coding: utf-8 -*-
 """net.ipynb
