@@ -1,4 +1,4 @@
-# Version 4: changed added regularization
+# Version 4: changed added regularization. Added kernel_regularizer='l2' to line 165.
 
 # -*- coding: utf-8 -*-
 """net.ipynb
@@ -162,7 +162,7 @@ def build_network(config=None):
     conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
                                  padding="same",
                                  activation='elu')(dp)
-    dense = layers.Dense(15)(conv1d_layer)
+    dense = layers.Dense(15)(conv1d_layer, kernel_regularizer='l2')
 
     return tf.keras.Model(input_layer, dense)
 
