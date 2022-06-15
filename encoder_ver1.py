@@ -123,7 +123,7 @@ def get_default_config():
     return sweep_config
 
 
-def build_network(config=None):
+def build_encoder(config=None):
     """
     builds the neural network architecture as shown in the exercise.
     :return: a Keras Model
