@@ -16,7 +16,7 @@ from tensorflow.keras import layers
 import utils
 
 
-def resnet_block(input_layer, kernel_size, kernel_num, leaky_alpha, dialation):
+def resnet_block(input_layer, kernel_size, kernel_num, leaky_alpha, dialation=1):
     # bn1 = layers.BatchNormalization()(input_layer)
     conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same',
                                   dilation_rate=dialation)(input_layer)

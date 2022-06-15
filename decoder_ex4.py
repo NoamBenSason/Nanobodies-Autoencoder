@@ -64,7 +64,7 @@ def get_time():
     return now.strftime("%d-%m-%Y__%H-%M-%S")
 
 
-def resnet_block(input_layer, kernel_size, kernel_num, dialation):
+def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
     bn1 = layers.BatchNormalization()(input_layer)
     conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='relu',
                                   dilation_rate=dialation)(bn1)
