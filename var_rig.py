@@ -1,8 +1,13 @@
 import subprocess as sp
 import sys
+import pandas as pd
 
 renumber = "/cs/staff/dina/utils/srcs/renumber/renumber"
 rmsd_prog = "/cs/staff/dina/utils/rmsd"
+transform =
+get_frag_chain =
+
+
 
 if __name__ == '__main__':
     pdb = sys.argv[1]
@@ -18,11 +23,12 @@ if __name__ == '__main__':
         valid = False
         continue
 
-    # find sequences
-    aa_seq =
-    cdr1_seq =
-    cdr2_seq =
-    cdr3_seq =
+    # find sequences - check hoe to read from csv TODO
+    pdb_file_name = pdb + "_CDRS.csv"
+    aa_seq = pd.read_csv(pdb_file_name)[1][1]
+    cdr1_seq = pd.read_csv(pdb_file_name)[1][3]
+    cdr2_seq = pd.read_csv(pdb_file_name)[1][4]
+    cdr3_seq = pd.read_csv(pdb_file_name)[1][5]
 
     # get the cdrs locations according to IMGT numbering
     cdr1_start, cdr1_end = aa_seq.find(cdr1_seq)
@@ -56,6 +62,7 @@ if __name__ == '__main__':
     cdr2_rmsd = float(sp.run(f"{rmsd_prog} ref_cdr2.pdb model_cdr2.pdb | tail -n1 ", shell=True, capture_output=True).stdout.strip())
     cdr3_rmsd = float(sp.run(f"{rmsd_prog} ref_cdr3.pdb model_cdr3.pdb | tail -n1 ", shell=True, capture_output=True).stdout.strip())
 
+    # TODO print to csv to do plots on
     print(cdr1_rmsd, cdr2_rmsd, cdr3_rmsd)
 
 
