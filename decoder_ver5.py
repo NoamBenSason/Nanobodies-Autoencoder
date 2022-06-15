@@ -176,7 +176,7 @@ def build_network(config=None):
                                  padding="same",
                                  activation='elu')(dp)
 
-    regularizer = tf.keras.regularizers.OrthogonalRegularizer(factor=0.01)
+    regularizer = tf.keras.regularizers.OrthogonalRegularizer(mode="rows", factor=0.01)
     # layer = tf.keras.layers.Dense(units=4, kernel_regularizer=regularizer)
 
     dense = layers.Dense(15)(conv1d_layer, kernel_regularizer=regularizer)
