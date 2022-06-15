@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 import utils
 from utils import matrix_to_pdb
-from encoder_ver1 import build_encoder
-from decoder_ex4 import build_decoder
+from encoder_ver3 import build_encoder
+from decoder_ver2 import build_decoder
 
 
 def plot_val_train_loss(history):
@@ -41,16 +41,18 @@ def train(config=None):
     dec_out = build_decoder(enc_out)
     model = tf.keras.Model(inputs=inputs, outputs=[dec_out, enc_out])
 
-    my_optimizer = tf.keras.optimizers.Adam(learning_rate=0.001,clipnorm=1)
+    my_optimizer = tf.keras.optimizers.Adam(learning_rate=0.001, clipnorm=1)
     #
     # model = build_network(config)
     # # _______________compiling______________
     #
     model.compile(optimizer=my_optimizer, loss=['mean_squared_error',
-                                                tf.keras.losses.CategoricalCrossentropy(from_logits=True)], loss_weights=[1,0.1])
+                                                tf.keras.losses.CategoricalCrossentropy(
+                                                    from_logits=True)],
+                  loss_weights=[1, 1])
     #
     # # _____________fitting the model______________
-    history = model.fit(mat_input, [mat_input,labels],
+    history = model.fit(mat_input, [mat_input, labels],
                         epochs=50,
                         batch_size=128)
 
@@ -67,7 +69,7 @@ def train(config=None):
     seq = np.argmax(out2[0], axis=1)
     seq_str, real_seq_ind = utils.generate_ind("1A2Y_1.pdb")
     print(np.mean(seq == real_seq_ind))
-    matrix_to_pdb(seq_str, out1[0,:,:], "test1A2Y")
+    matrix_to_pdb(seq_str, out1[0, :, :], "test1A2Y")
 
     # plot_val_train_loss(history)
     # tf.keras.models.save_model(model, save_dir + model_name)
