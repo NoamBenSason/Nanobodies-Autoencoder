@@ -13,62 +13,10 @@
 # __________________________________________________________________________________________________
 import tensorflow as tf
 from tensorflow.keras import layers
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import KFold
-import wandb
-from datetime import datetime
 import utils
 
-###############################################################################
-#                                                                             #
-#              Parameters you can change, but don't have to                   #
-#                                                                             #
-###############################################################################
 
-
-# number of ResNet blocks for the first ResNet and the kernel size.
-RESNET_1_BLOCKS = 1
-RESNET_1_KERNEL_SIZE = 9
-RESNET_1_KERNEL_NUM = 16
-
-###############################################################################
-#                                                                             #
-#                        Parameters you need to choose                        #
-#                                                                             #
-###############################################################################
-
-
-# number of ResNet blocks for the second ResNet, dilation list to repeat and the kernel size.
-
-RESNET_2_BLOCKS = 5
-RESNET_2_KERNEL_SIZE = 5  # good start may be 3/5
-RESNET_2_KERNEL_NUM = 28  # DO NOT MAKE IT 1!
-DILATION = [1]
-WANTED_M = len(DILATION)  # len of DILATION to be randomize by 'wandb' tool
-
-# percentage of dropout for the dropout layer
-DROPOUT = 0.289580549283963  # good start may be 0.1-0.5
-
-# number of epochs, Learning rate and Batch size
-EPOCHS = 9
-LR = 0.0019210418506367384  # good start may be 0.0001/0.001/0.01
-BATCH = 16  # good start may be 32/64/128
-
-LEAKY_ALPHA = 0
-LOSS_3D_W = 1
-LOSS_SEQ_W = 0.1
-
-save_dir = "BestFits/"
-model_name = "selected_model2_polar_5"
-
-
-def get_time():
-    now = datetime.now()
-    return now.strftime("%d-%m-%Y__%H-%M-%S")
-
-
-def resnet_block(input_layer, kernel_size, kernel_num, leaky_alpha, dialation=1):
+def resnet_block(input_layer, kernel_size, kernel_num, leaky_alpha, dialation):
     # bn1 = layers.BatchNormalization()(input_layer)
     conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same',
                                   dilation_rate=dialation)(input_layer)
@@ -80,9 +28,8 @@ def resnet_block(input_layer, kernel_size, kernel_num, leaky_alpha, dialation=1)
     return layers.Add()([input_layer, leakyRelu2])
 
 
-
-def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL_SIZE,
-             kernel_num=RESNET_1_KERNEL_NUM,leaky_alpha=LEAKY_ALPHA):
+def resnet_1(input_layer, block_num, kernel_size,
+             kernel_num, leaky_alpha):
     """
     ResNet layer - input -> BatchNormalization -> Conv1D -> Relu -> BatchNormalization -> Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
@@ -91,13 +38,12 @@ def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL
     last_layer_output = input_layer
 
     for i in range(block_num):
-        last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num,leaky_alpha)
+        last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, leaky_alpha)
 
     return last_layer_output
 
 
-def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL_SIZE,
-             kernel_num=RESNET_2_KERNEL_NUM, dial_lst=DILATION,leaky_alpha=LEAKY_ALPHA):
+def resnet_2(input_layer, block_num, kernel_size,kernel_num, dial_lst, leaky_alpha):
     """
     Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> Relu -> BatchNormalization -> dilated Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
@@ -107,30 +53,12 @@ def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL
 
     for i in range(block_num):
         for d in dial_lst:
-            last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, d,leaky_alpha)
+            last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, leaky_alpha, d)
 
     return last_layer_output
 
 
-def get_default_config():
-    """
-    :return: a configuration with the default
-    """
-    sweep_config = {'RESNET_1_BLOCKS': RESNET_1_BLOCKS,
-                    'RESNET_1_KERNEL_SIZE': RESNET_1_KERNEL_SIZE,
-                    'RESNET_1_KERNEL_NUM': RESNET_1_KERNEL_NUM,
-                    'RESNET_2_BLOCKS': RESNET_2_BLOCKS,
-                    'RESNET_2_KERNEL_SIZE': RESNET_2_KERNEL_SIZE,
-                    'RESNET_2_KERNEL_NUM': RESNET_2_KERNEL_NUM,
-                    'DROPOUT': DROPOUT, 'EPOCHS': EPOCHS, "LR": LR,
-                    'DILATATION': DILATION, 'BATCH': BATCH, 'method': 'random',
-                    'LEAKY_ALPHA':LEAKY_ALPHA,
-                    'LOSS_3D_W' : LOSS_3D_W,
-                    'LOSS_SEQ_W' : LOSS_SEQ_W,
-                    'metric': {'name': 'loss', 'goal': 'minimize'},
-                    'name': f"BioEx4_{get_time()}"}
 
-    return sweep_config
 
 
 def build_encoder(config=None):
@@ -138,9 +66,6 @@ def build_encoder(config=None):
     builds the neural network architecture as shown in the exercise.
     :return: a Keras Model
     """
-    if config is None:
-        config = get_default_config()
-
     # input, shape (NB_MAX_LENGTH,FEATURE_NUM)
     input_layer = tf.keras.Input(shape=(utils.NB_MAX_LENGTH, utils.OUTPUT_SIZE))
 
@@ -150,7 +75,7 @@ def build_encoder(config=None):
 
     # first ResNet -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
     resnet_layer = resnet_1(conv1d_layer, config['RESNET_1_BLOCKS'], config['RESNET_1_KERNEL_SIZE'],
-                            config['RESNET_1_KERNEL_NUM'],config['LEAKY_ALPHA'])
+                            config['RESNET_1_KERNEL_NUM'], config['LEAKY_ALPHA'])
 
     # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
     conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'], config['RESNET_2_KERNEL_SIZE'],
@@ -158,130 +83,22 @@ def build_encoder(config=None):
 
     # second ResNet -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
     resnet_layer = resnet_2(conv1d_layer, config['RESNET_2_BLOCKS'], config['RESNET_2_KERNEL_SIZE'],
-                            config['RESNET_2_KERNEL_NUM'], config['DILATATION'],config['LEAKY_ALPHA'])
+                            config['RESNET_2_KERNEL_NUM'], config['DILATATION'], config['LEAKY_ALPHA'])
 
-    dp = layers.Dropout(config['DROPOUT'])(resnet_layer)
+    # _____________________________________ Drop out ___________________________________________
+
+    if config['DROP_OUT_TYPE'] == "vanilla":
+        dp = layers.Dropout(config['DROPOUT'])(resnet_layer)
+    elif config['DROP_OUT_TYPE'] == "gaussian":
+        dp = layers.GaussianDropout(rate=0.05, seed=None)(resnet_layer)
+    # ____________________________________________________________________________________________
+
     conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
                                  padding="same")(dp)
-    dense = layers.Dense(utils.FEATURE_NUM)(conv1d_layer)
+    # _______________________________________________________________
 
-    return input_layer,dense
+    dense = layers.Dense(utils.FEATURE_NUM, name="seq_dense")(conv1d_layer)
 
-
-def plot_val_train_loss(history):
-    """
-    plots the train and validation loss of the model at each epoch, saves it in 'model_loss_history.png'
-    :param history: history object (output of fit function)
-    :return: None
-    """
-    ig, axes = plt.subplots(1, 1, figsize=(15, 3))
-    axes.plot(history.history['loss'], label='Training loss')
-    axes.plot(history.history['val_loss'], label='Validation loss')
-    axes.legend()
-    axes.set_title("Train and Val MSE loss")
-
-    plt.savefig(f"/content/drive/MyDrive/ColabNotebooks/model_loss_history{get_time()}.png")
-
-
-
-def get_config():
-    sweep_config = {}
-    sweep_config['method'] = 'bayes'
-    sweep_config['metric'] = {'name': 'best_val_loss', 'goal': 'minimize'}
-    sweep_config["early_terminate"]= {
-        "type": "hyperband",
-        "min_iter": 2,
-        "eta": 2,
-    }
-
-    sweep_config['name'] = f"BioEx4_{get_time()}"
-    param_dict = {
-        'RESNET_1_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
-        'RESNET_1_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
-        'RESNET_1_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
-                                'max': 64},
-        'RESNET_2_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
-        'RESNET_2_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
-        'RESNET_2_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
-                                'max': 64},
-        'DROPOUT': {'distribution': 'uniform', 'min': 0.001, 'max': 0.5},
-        'EPOCHS': {'distribution': 'int_uniform', 'min': 5, 'max': 15},
-        "LR": {'distribution': 'uniform', 'min': 0.001, 'max': 0.025},
-        "leakyAlpha": {'distribution': 'uniform', 'min': 0.001, 'max': 0.1},
-        'BATCH': {'values': [16, 32, 64, 128, 256]},
-        'LOSS_3D_W': {'distribution': 'uniform', 'min': 0.7, 'max': 1},
-        'LOSS_SEQ_W': {'distribution': 'uniform', 'min': 0.1, 'max': 1},
-        'DILATATION': {'values': [[1, 2, 4], [1], [1, 2], [1, 4], [1, 2, 4, 8]]}
-    }
-
-    sweep_config['parameters'] = param_dict
-    return sweep_config
-
-# class WandbCallback(tf.keras.callbacks.Callback):
-#     def __init__(self, fold):
-#         super(WandbCallback, self).__init__()
-#         self.fold = fold
-
-#     def on_epoch_end(self, epoch, logs=None):
-#         wandb.log({'loss': logs['loss'], 'val_loss': logs['val_loss'], 'fold':
-#             self.fold, 'epoch': epoch})
-
-
-# def models_selection(config=None):
-#     if config is None:
-#         config = get_default_config()
-#     with wandb.init(config=config) as run:
-
-#         # _______________loading the data_______________
-#         config = wandb.config
-#         input = np.load("train_input.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,FEATURE_NUM) - data
-#         labels = np.load("train_labels.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,OUTPUT_SIZE) - labels
-#         save_dir = "BestFits/"
-#         model_name = run.name
-#         fold_var = 1
-#         kf = KFold(n_splits=5, shuffle=True, random_state=0)
-#         my_optimizer = tf.keras.optimizers.Adam(learning_rate=config['LR'])
-#         loss = 0
-#         losses = np.zeros(5)
-#         for t_idx, v_idx in kf.split(input, labels):
-#             X_t, X_v = input[t_idx], input[v_idx]
-#             y_t, y_v = labels[t_idx], labels[v_idx]
-
-#             model = build_network(config)
-#             # _______________compiling______________
-
-#             model.compile(optimizer=my_optimizer, loss='mean_squared_error')
-
-#             # _____________creating callbacks_____________
-#             checkpoint = tf.keras.callbacks.ModelCheckpoint(f"{save_dir}"
-#                                                             f"{model_name}"
-#                                                             f"{fold_var}.ckpt",
-#                                                             monitor='val_loss',
-#                                                             save_best_only=True, mode='min')
-
-#             callbacks_list = [checkpoint, WandbCallback(fold_var)]
-
-#             # _____________fitting the model______________
-#             history = model.fit(X_t, y_t,
-#                                 epochs=config['EPOCHS'],
-#                                 callbacks=callbacks_list,
-#                                 batch_size=config['BATCH'],
-#                                 validation_data=(X_v, y_v))
-
-
-#             # _____________evaluate the model_____________
-#             best_model = tf.keras.models.load_model(f"{save_dir}"
-#                                                     f"{model_name}"
-#                                                     f"{fold_var}.ckpt")
-
-#             l = best_model.evaluate(X_v, y_v)
-#             losses[fold_var - 1] = l
-#             loss += l/5
-#             wandb.log({'best_val_loss': loss})
-#             # loss[fold_var - 1] = best_model.evaluate(X_v, y_v)
-#             fold_var += 1
-#             tf.keras.backend.clear_session()
-#         wandb.log({'mean_loss': loss,'std':np.std(losses)})
-
+    return input_layer, dense
 
 
