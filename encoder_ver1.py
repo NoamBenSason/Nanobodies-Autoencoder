@@ -66,11 +66,11 @@ def get_time():
 
 def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
     # bn1 = layers.BatchNormalization()(input_layer)
-    conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='relu',
-                                  dilation_rate=dialation)(input_layer)
+    conv1d_layer1 = layers.Conv2D(kernel_num, kernel_size, padding='same', activation='leakyrelu',
+                                  dilation_rate=dialation,strides=(3, 3))(input_layer)
     # bn2 = layers.BatchNormalization()(conv1d_layer1)
-    conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='relu',
-                                  dilation_rate=dialation)(conv1d_layer1)
+    conv1d_layer2 = layers.Conv2D(kernel_num, kernel_size, padding='same', activation='leakyrelu',
+                                  dilation_rate=dialation, strides=(3, 3))(input_layer)
     return layers.Add()([input_layer, conv1d_layer2])
 
 
@@ -294,13 +294,6 @@ def train(config=None):
     tf.keras.backend.clear_session()
 
 
-#
-# def part3():
-#     model = tf.keras.models.load_model(save_dir + model_name)
-#     input = utils.generate_input("6xw6/6xw6.pdb")
-#     prediction = model.predict(input[None, :, :])
-#     seq = "VQLQESGGGLVQAGDSLRVSCAASGRTISSSPMGWFRQAPGKEREFVAAISGNGGNTYYLDSVKGRFTTSRDNAKNTVYLQLNNLKPEDTAIYYCAARSRFSAMHLAYRRLVDYDDWGQGTQVTVS"
-#     utils.matrix_to_pdb(seq, prediction[0, :, :], "prediction_6xw6_solar5")
 
 
 def main():
