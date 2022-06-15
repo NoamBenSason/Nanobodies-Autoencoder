@@ -66,12 +66,16 @@ def get_time():
 
 def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
     # bn1 = layers.BatchNormalization()(input_layer)
-    conv1d_layer1 = layers.Conv2D(kernel_num, kernel_size, padding='same', activation='leakyrelu',
-                                  dilation_rate=dialation,strides=(3, 3))(input_layer)
+    # TODO make alpha param
+    conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same',
+                                  dilation_rate=dialation)(input_layer)
+    leakyRelu1 = layers.LeakyReLU(alpha=0.3)(conv1d_layer1)
     # bn2 = layers.BatchNormalization()(conv1d_layer1)
-    conv1d_layer2 = layers.Conv2D(kernel_num, kernel_size, padding='same', activation='leakyrelu',
-                                  dilation_rate=dialation, strides=(3, 3))(input_layer)
-    return layers.Add()([input_layer, conv1d_layer2])
+    conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same',
+                                  dilation_rate=dialation)(leakyRelu1)
+    leakyRelu2 = layers.LeakyReLU(alpha=0.3)(conv1d_layer2)
+    return layers.Add()([input_layer, leakyRelu2])
+
 
 
 def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL_SIZE,
@@ -152,11 +156,10 @@ def build_encoder(config=None):
 
     dp = layers.Dropout(config['DROPOUT'])(resnet_layer)
     conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
-                                 padding="same",
-                                 activation='elu')(dp)
+                                 padding="same")(dp)
     dense = layers.Dense(utils.FEATURE_NUM)(conv1d_layer)
 
-    return dense
+    return input_layer,dense
 
 
 def plot_val_train_loss(history):
