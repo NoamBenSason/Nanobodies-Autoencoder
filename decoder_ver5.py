@@ -1,5 +1,4 @@
-# replacing activation layer - relu with selu
-
+# Version 5: added orthogonal regularization to dense layer.
 
 # -*- coding: utf-8 -*-
 """net.ipynb
@@ -75,33 +74,38 @@ def get_time():
 
 def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
     bn1 = layers.BatchNormalization()(input_layer)
-    conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='selu',
+    conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same',
+                                  activation='relu',
                                   dilation_rate=dialation)(bn1)
     bn2 = layers.BatchNormalization()(conv1d_layer1)
-    conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='selu',
+    conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same',
+                                  activation='relu',
                                   dilation_rate=dialation)(bn2)
     return layers.Add()([input_layer, conv1d_layer2])
 
 
-def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL_SIZE,
+def resnet_1(input_layer, block_num=RESNET_1_BLOCKS,
+             kernel_size=RESNET_1_KERNEL_SIZE,
              kernel_num=RESNET_1_KERNEL_NUM):
     """
-    ResNet layer - input -> BatchNormalization -> Conv1D -> selu -> BatchNormalization -> Conv1D -> selu -> Add
+    ResNet layer - input -> BatchNormalization -> Conv1D -> Relu -> BatchNormalization -> Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
     :return: last layer of the ResNet
     """
     last_layer_output = input_layer
 
     for i in range(block_num):
-        last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num)
+        last_layer_output = resnet_block(last_layer_output, kernel_size,
+                                         kernel_num)
 
     return last_layer_output
 
 
-def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL_SIZE,
+def resnet_2(input_layer, block_num=RESNET_2_BLOCKS,
+             kernel_size=RESNET_2_KERNEL_SIZE,
              kernel_num=RESNET_2_KERNEL_NUM, dial_lst=DILATION):
     """
-    Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> selu -> BatchNormalization -> dilated Conv1D -> selu -> Add
+    Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> Relu -> BatchNormalization -> dilated Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
     :return: last layer of the ResNet
     """
@@ -109,7 +113,8 @@ def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL
 
     for i in range(block_num):
         for d in dial_lst:
-            last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, d)
+            last_layer_output = resnet_block(last_layer_output, kernel_size,
+                                             kernel_num, d)
 
     return last_layer_output
 
@@ -141,29 +146,40 @@ def build_network(config=None):
         config = get_default_config()
 
     # input, shape (NB_MAX_LENGTH,FEATURE_NUM)
-    input_layer = tf.keras.Input(shape=(utils.NB_MAX_LENGTH, utils.FEATURE_NUM))
+    input_layer = tf.keras.Input(
+        shape=(utils.NB_MAX_LENGTH, utils.FEATURE_NUM))
 
     # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
-    conv1d_layer = layers.Conv1D(config['RESNET_1_KERNEL_NUM'], config['RESNET_1_KERNEL_SIZE'],
+    conv1d_layer = layers.Conv1D(config['RESNET_1_KERNEL_NUM'],
+                                 config['RESNET_1_KERNEL_SIZE'],
                                  padding='same')(input_layer)
 
     # first ResNet -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
-    resnet_layer = resnet_1(conv1d_layer, config['RESNET_1_BLOCKS'], config['RESNET_1_KERNEL_SIZE'],
+    resnet_layer = resnet_1(conv1d_layer, config['RESNET_1_BLOCKS'],
+                            config['RESNET_1_KERNEL_SIZE'],
                             config['RESNET_1_KERNEL_NUM'])
 
     # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
-    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'], config['RESNET_2_KERNEL_SIZE'],
+    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'],
+                                 config['RESNET_2_KERNEL_SIZE'],
                                  padding="same")(resnet_layer)
 
     # second ResNet -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
-    resnet_layer = resnet_2(conv1d_layer, config['RESNET_2_BLOCKS'], config['RESNET_2_KERNEL_SIZE'],
-                            config['RESNET_2_KERNEL_NUM'], config['DILATATION'])
+    resnet_layer = resnet_2(conv1d_layer, config['RESNET_2_BLOCKS'],
+                            config['RESNET_2_KERNEL_SIZE'],
+                            config['RESNET_2_KERNEL_NUM'],
+                            config['DILATATION'])
 
     dp = layers.Dropout(config['DROPOUT'])(resnet_layer)
-    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
+    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2,
+                                 config['RESNET_2_KERNEL_SIZE'],
                                  padding="same",
                                  activation='elu')(dp)
-    dense = layers.Dense(15)(conv1d_layer)
+
+    regularizer = tf.keras.regularizers.OrthogonalRegularizer(mode="rows", factor=0.01)
+    # layer = tf.keras.layers.Dense(units=4, kernel_regularizer=regularizer)
+
+    dense = layers.Dense(15)(conv1d_layer, kernel_regularizer=regularizer)
 
     return dense
 
@@ -180,7 +196,8 @@ def plot_val_train_loss(history):
     axes.legend()
     axes.set_title("Train and Val MSE loss")
 
-    plt.savefig(f"/content/drive/MyDrive/ColabNotebooks/model_loss_history{get_time()}.png")
+    plt.savefig(
+        f"/content/drive/MyDrive/ColabNotebooks/model_loss_history{get_time()}.png")
 
 
 # def get_config():
@@ -279,15 +296,3 @@ def plot_val_train_loss(history):
 #             tf.keras.backend.clear_session()
 #         wandb.log({'mean_loss': loss,'std':np.std(losses)})
 
-
-
-def part3():
-    model = tf.keras.models.load_model(save_dir + model_name)
-    input = utils.generate_input("6xw6/6xw6.pdb")
-    prediction = model.predict(input[None, :, :])
-    seq = "VQLQESGGGLVQAGDSLRVSCAASGRTISSSPMGWFRQAPGKEREFVAAISGNGGNTYYLDSVKGRFTTSRDNAKNTVYLQLNNLKPEDTAIYYCAARSRFSAMHLAYRRLVDYDDWGQGTQVTVS"
-    utils.matrix_to_pdb(seq, prediction[0, :, :], "prediction_6xw6_solar5")
-
-
-if __name__ == '__main__':
-    main()
