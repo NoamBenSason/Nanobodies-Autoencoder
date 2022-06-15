@@ -146,26 +146,26 @@ def build_network(config=None):
     input_layer = tf.keras.Input(shape=(utils.NB_MAX_LENGTH, utils.FEATURE_NUM))
 
     # Conv2D -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
-    conv1d_layer = layers.Conv1D(config['RESNET_1_KERNEL_NUM'], config['RESNET_1_KERNEL_SIZE'],
+    conv2d_layer = layers.Conv2D(config['RESNET_1_KERNEL_NUM'], config['RESNET_1_KERNEL_SIZE'],
                                  padding='same')(input_layer)
 
     # first ResNet -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
-    resnet_layer = resnet_1(conv1d_layer, config['RESNET_1_BLOCKS'], config['RESNET_1_KERNEL_SIZE'],
+    resnet_layer = resnet_1(conv2d_layer, config['RESNET_1_BLOCKS'], config['RESNET_1_KERNEL_SIZE'],
                             config['RESNET_1_KERNEL_NUM'])
 
-    # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
-    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'], config['RESNET_2_KERNEL_SIZE'],
+    # Conv2D -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
+    conv2d_layer = layers.Conv2D(config['RESNET_2_KERNEL_NUM'], config['RESNET_2_KERNEL_SIZE'],
                                  padding="same")(resnet_layer)
 
     # second ResNet -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
-    resnet_layer = resnet_2(conv1d_layer, config['RESNET_2_BLOCKS'], config['RESNET_2_KERNEL_SIZE'],
+    resnet_layer = resnet_2(conv2d_layer, config['RESNET_2_BLOCKS'], config['RESNET_2_KERNEL_SIZE'],
                             config['RESNET_2_KERNEL_NUM'], config['DILATATION'])
 
     dp = layers.Dropout(config['DROPOUT'])(resnet_layer)
-    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
+    conv2d_layer = layers.Conv2D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
                                  padding="same",
                                  activation='elu')(dp)
-    dense = layers.Dense(15)(conv1d_layer)
+    dense = layers.Dense(15)(conv2d_layer)
 
     # return tf.keras.Model(input_layer, dense)
     return dense
