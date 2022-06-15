@@ -30,7 +30,7 @@ import utils
 # number of ResNet blocks for the first ResNet and the kernel size.
 RESNET_1_BLOCKS = 1
 RESNET_1_KERNEL_SIZE = 9
-RESNET_1_KERNEL_NUM = 16
+RESNET_1_KERNEL_NUM = 15
 
 ###############################################################################
 #                                                                             #
@@ -77,8 +77,8 @@ def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
     return layers.Add()([input_layer, leakyRelu2])
 
 
-
-def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL_SIZE,
+def resnet_1(input_layer, block_num=RESNET_1_BLOCKS,
+             kernel_size=RESNET_1_KERNEL_SIZE,
              kernel_num=RESNET_1_KERNEL_NUM):
     """
     ResNet layer - input -> BatchNormalization -> Conv1D -> Relu -> BatchNormalization -> Conv1D -> Relu -> Add
@@ -88,12 +88,14 @@ def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL
     last_layer_output = input_layer
 
     for i in range(block_num):
-        last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num)
+        last_layer_output = resnet_block(last_layer_output, kernel_size,
+                                         kernel_num)
 
     return last_layer_output
 
 
-def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL_SIZE,
+def resnet_2(input_layer, block_num=RESNET_2_BLOCKS,
+             kernel_size=RESNET_2_KERNEL_SIZE,
              kernel_num=RESNET_2_KERNEL_NUM, dial_lst=DILATION):
     """
     Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> Relu -> BatchNormalization -> dilated Conv1D -> Relu -> Add
@@ -104,7 +106,8 @@ def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL
 
     for i in range(block_num):
         for d in dial_lst:
-            last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, d)
+            last_layer_output = resnet_block(last_layer_output, kernel_size,
+                                             kernel_num, d)
 
     return last_layer_output
 
@@ -139,27 +142,33 @@ def build_encoder(config=None):
     input_layer = tf.keras.Input(shape=(utils.NB_MAX_LENGTH, utils.OUTPUT_SIZE))
 
     # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
-    conv1d_layer = layers.Conv1D(config['RESNET_1_KERNEL_NUM'], config['RESNET_1_KERNEL_SIZE'],
-                                 padding='same')(input_layer)
+    # conv1d_layer = layers.Conv1D(config['RESNET_1_KERNEL_NUM'], config['RESNET_1_KERNEL_SIZE'],
+    #                              padding='same')(input_layer)
+
+    attention = tf.keras.layers.Attention()([input_layer, input_layer])
 
     # first ResNet -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
-    resnet_layer = resnet_1(conv1d_layer, config['RESNET_1_BLOCKS'], config['RESNET_1_KERNEL_SIZE'],
+    resnet_layer = resnet_1(attention, config['RESNET_1_BLOCKS'],
+                            config['RESNET_1_KERNEL_SIZE'],
                             config['RESNET_1_KERNEL_NUM'])
 
     # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
-    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'], config['RESNET_2_KERNEL_SIZE'],
+    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'],
+                                 config['RESNET_2_KERNEL_SIZE'],
                                  padding="same")(resnet_layer)
 
     # second ResNet -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
-    resnet_layer = resnet_2(conv1d_layer, config['RESNET_2_BLOCKS'], config['RESNET_2_KERNEL_SIZE'],
+    resnet_layer = resnet_2(conv1d_layer, config['RESNET_2_BLOCKS'],
+                            config['RESNET_2_KERNEL_SIZE'],
                             config['RESNET_2_KERNEL_NUM'], config['DILATATION'])
 
     dp = layers.Dropout(config['DROPOUT'])(resnet_layer)
-    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
+    conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2,
+                                 config['RESNET_2_KERNEL_SIZE'],
                                  padding="same")(dp)
     dense = layers.Dense(utils.FEATURE_NUM)(conv1d_layer)
 
-    return input_layer,dense
+    return input_layer, dense
 
 
 def plot_val_train_loss(history):
@@ -174,9 +183,8 @@ def plot_val_train_loss(history):
     axes.legend()
     axes.set_title("Train and Val MSE loss")
 
-    plt.savefig(f"/content/drive/MyDrive/ColabNotebooks/model_loss_history{get_time()}.png")
-
-
+    plt.savefig(
+        f"/content/drive/MyDrive/ColabNotebooks/model_loss_history{get_time()}.png")
 
 # def get_config():
 #     sweep_config = {}
@@ -273,6 +281,3 @@ def plot_val_train_loss(history):
 #             fold_var += 1
 #             tf.keras.backend.clear_session()
 #         wandb.log({'mean_loss': loss,'std':np.std(losses)})
-
-
-
