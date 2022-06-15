@@ -276,7 +276,8 @@ def plot_val_train_loss(history):
 #             # loss[fold_var - 1] = best_model.evaluate(X_v, y_v)
 #             fold_var += 1
 #             tf.keras.backend.clear_session()
-#         wandb.log({'mean_loss': loss,'std':np.std(losses)})
+#         wandb.
+#         log({'mean_loss': loss,'std':np.std(losses)})
 
 def train(config=None):
     if config is None:
@@ -287,7 +288,8 @@ def train(config=None):
     labels = np.load("train_labels.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,OUTPUT_SIZE) - labels
     my_optimizer = tf.keras.optimizers.Adam(learning_rate=config['LR'])
 
-    model = build_network(config)
+    encoder_output = build_encoder(config)
+    decoder_output = build_decoder(config,encoder_output)
     # _______________compiling______________
 
     model.compile(optimizer=my_optimizer, loss='mean_squared_error')
