@@ -1,5 +1,4 @@
-# replacing activation layer - relu with selu
-
+# Version 4: changed added regularization
 
 # -*- coding: utf-8 -*-
 """net.ipynb
@@ -75,10 +74,10 @@ def get_time():
 
 def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
     bn1 = layers.BatchNormalization()(input_layer)
-    conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='selu',
+    conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='relu',
                                   dilation_rate=dialation)(bn1)
     bn2 = layers.BatchNormalization()(conv1d_layer1)
-    conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='selu',
+    conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='relu',
                                   dilation_rate=dialation)(bn2)
     return layers.Add()([input_layer, conv1d_layer2])
 
@@ -86,7 +85,7 @@ def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
 def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL_SIZE,
              kernel_num=RESNET_1_KERNEL_NUM):
     """
-    ResNet layer - input -> BatchNormalization -> Conv1D -> selu -> BatchNormalization -> Conv1D -> selu -> Add
+    ResNet layer - input -> BatchNormalization -> Conv1D -> Relu -> BatchNormalization -> Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
     :return: last layer of the ResNet
     """
@@ -101,7 +100,7 @@ def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL
 def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL_SIZE,
              kernel_num=RESNET_2_KERNEL_NUM, dial_lst=DILATION):
     """
-    Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> selu -> BatchNormalization -> dilated Conv1D -> selu -> Add
+    Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> Relu -> BatchNormalization -> dilated Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
     :return: last layer of the ResNet
     """
@@ -165,7 +164,7 @@ def build_network(config=None):
                                  activation='elu')(dp)
     dense = layers.Dense(15)(conv1d_layer)
 
-    return dense
+    return tf.keras.Model(input_layer, dense)
 
 
 def plot_val_train_loss(history):
@@ -279,6 +278,28 @@ def plot_val_train_loss(history):
 #             tf.keras.backend.clear_session()
 #         wandb.log({'mean_loss': loss,'std':np.std(losses)})
 
+def train(config=None):
+    if config is None:
+        config = get_default_config()
+
+    # _______________loading the data_______________
+    input = np.load("train_input.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,FEATURE_NUM) - data
+    labels = np.load("train_labels.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,OUTPUT_SIZE) - labels
+    my_optimizer = tf.keras.optimizers.Adam(learning_rate=config['LR'])
+
+    model = build_network(config)
+    # _______________compiling______________
+
+    model.compile(optimizer=my_optimizer, loss='mean_squared_error')
+
+    # _____________fitting the model______________
+    history = model.fit(input, labels,
+                        epochs=config['EPOCHS'],
+                        batch_size=config['BATCH'],
+                        validation_split=0.07)
+    plot_val_train_loss(history)
+    tf.keras.models.save_model(model, save_dir + model_name)
+    tf.keras.backend.clear_session()
 
 
 def part3():
