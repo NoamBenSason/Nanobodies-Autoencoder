@@ -156,7 +156,7 @@ def build_network(config=None):
                                  activation='elu')(dp)
     dense = layers.Dense(utils.FEATURE_NUM)(conv1d_layer)
 
-    return tf.keras.Model(input_layer, dense)
+    return dense
 
 
 def plot_val_train_loss(history):
@@ -172,6 +172,7 @@ def plot_val_train_loss(history):
     axes.set_title("Train and Val MSE loss")
 
     plt.savefig(f"/content/drive/MyDrive/ColabNotebooks/model_loss_history{get_time()}.png")
+
 
 
 # def get_config():
@@ -270,38 +271,5 @@ def plot_val_train_loss(history):
 #             tf.keras.backend.clear_session()
 #         wandb.log({'mean_loss': loss,'std':np.std(losses)})
 
-def train(config=None):
-    if config is None:
-        config = get_default_config()
-
-    # _______________loading the data_______________
-    input = np.load("train_input.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,FEATURE_NUM) - data
-    labels = np.load("train_labels.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,OUTPUT_SIZE) - labels
-    my_optimizer = tf.keras.optimizers.Adam(learning_rate=config['LR'])
-
-    model = build_network(config)
-    # _______________compiling______________
-
-    model.compile(optimizer=my_optimizer, loss='mean_squared_error')
-
-    # _____________fitting the model______________
-    history = model.fit(input, labels,
-                        epochs=config['EPOCHS'],
-                        batch_size=config['BATCH'],
-                        validation_split=0.07)
-    plot_val_train_loss(history)
-    tf.keras.models.save_model(model, save_dir + model_name)
-    tf.keras.backend.clear_session()
 
 
-
-
-def main():
-    # sweep_id = wandb.sweep(get_config(), project="BioEx4_5",
-    #                          entity="avishai-elma")
-    #   wandb.agent(sweep_id, models_selection, count=1000)
-    train()
-
-
-if __name__ == '__main__':
-    main()
