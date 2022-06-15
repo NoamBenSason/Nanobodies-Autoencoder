@@ -74,6 +74,24 @@ def generate_input(pdb_file):
     return matrix
 
 
+def generate_ind(pdb_file):
+    """
+    receives a pdb file and returns its sequence in a one-hot encoding matrix (each row is an aa in the sequence, and
+    each column represents a different aa out of the 20 aa + 2 special columns).
+    :param pdb_file: path to a pdb file (nanobody, heavy chain has id 'H')
+    :return: numpy array of shape (NB_MAX_LENGTH, FEATURE_NUM)
+    """
+
+    # get seq and aa residues
+    seq_r, _ = get_seq_aa(pdb_file, NB_CHAIN_ID)
+    seq = seq_r
+    if len(seq) > NB_MAX_LENGTH:
+        seq = seq[:NB_MAX_LENGTH]
+    if len(seq) < NB_MAX_LENGTH:
+        seq = seq.ljust(NB_MAX_LENGTH, '-')
+    return seq_r,[AA_DICT[c] for c in seq]
+
+
 def generate_label(pdb_file):
     """
     receives a pdb file and returns its backbone + CB coordinates.
