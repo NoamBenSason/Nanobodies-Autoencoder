@@ -289,12 +289,5 @@ def part3():
     utils.matrix_to_pdb(seq, prediction[0, :, :], "prediction_6xw6_solar5")
 
 
-def main():
-    # sweep_id = wandb.sweep(get_config(), project="BioEx4_5",
-    #                          entity="avishai-elma")
-    #   wandb.agent(sweep_id, models_selection, count=1000)
-    train()
-
-
 if __name__ == '__main__':
     main()

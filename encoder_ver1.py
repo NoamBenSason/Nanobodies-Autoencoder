@@ -16,7 +16,7 @@ from tensorflow.keras import layers
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
-# import wandb
+import wandb
 from datetime import datetime
 import utils
 
@@ -55,6 +55,10 @@ EPOCHS = 9
 LR = 0.0019210418506367384  # good start may be 0.0001/0.001/0.01
 BATCH = 16  # good start may be 32/64/128
 
+LEAKY_ALPHA = 0
+LOSS_3D_W = 1
+LOSS_SEQ_W = 0.1
+
 save_dir = "BestFits/"
 model_name = "selected_model2_polar_5"
 
@@ -64,18 +68,21 @@ def get_time():
     return now.strftime("%d-%m-%Y__%H-%M-%S")
 
 
-def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
+def resnet_block(input_layer, kernel_size, kernel_num, leaky_alpha, dialation=1):
     # bn1 = layers.BatchNormalization()(input_layer)
-    conv1d_layer1 = layers.Conv2D(kernel_num, kernel_size, padding='same', activation='leakyrelu',
-                                  dilation_rate=dialation,strides=(3, 3))(input_layer)
+    conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same',
+                                  dilation_rate=dialation)(input_layer)
+    leakyRelu1 = layers.LeakyReLU(alpha=leaky_alpha)(conv1d_layer1)
     # bn2 = layers.BatchNormalization()(conv1d_layer1)
-    conv1d_layer2 = layers.Conv2D(kernel_num, kernel_size, padding='same', activation='leakyrelu',
-                                  dilation_rate=dialation, strides=(3, 3))(input_layer)
-    return layers.Add()([input_layer, conv1d_layer2])
+    conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same',
+                                  dilation_rate=dialation)(leakyRelu1)
+    leakyRelu2 = layers.LeakyReLU(alpha=leaky_alpha)(conv1d_layer2)
+    return layers.Add()([input_layer, leakyRelu2])
+
 
 
 def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL_SIZE,
-             kernel_num=RESNET_1_KERNEL_NUM):
+             kernel_num=RESNET_1_KERNEL_NUM,leaky_alpha=LEAKY_ALPHA):
     """
     ResNet layer - input -> BatchNormalization -> Conv1D -> Relu -> BatchNormalization -> Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
@@ -84,13 +91,13 @@ def resnet_1(input_layer, block_num=RESNET_1_BLOCKS, kernel_size=RESNET_1_KERNEL
     last_layer_output = input_layer
 
     for i in range(block_num):
-        last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num)
+        last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num,leaky_alpha)
 
     return last_layer_output
 
 
 def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL_SIZE,
-             kernel_num=RESNET_2_KERNEL_NUM, dial_lst=DILATION):
+             kernel_num=RESNET_2_KERNEL_NUM, dial_lst=DILATION,leaky_alpha=LEAKY_ALPHA):
     """
     Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> Relu -> BatchNormalization -> dilated Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
@@ -100,7 +107,7 @@ def resnet_2(input_layer, block_num=RESNET_2_BLOCKS, kernel_size=RESNET_2_KERNEL
 
     for i in range(block_num):
         for d in dial_lst:
-            last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, d)
+            last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, d,leaky_alpha)
 
     return last_layer_output
 
@@ -117,6 +124,9 @@ def get_default_config():
                     'RESNET_2_KERNEL_NUM': RESNET_2_KERNEL_NUM,
                     'DROPOUT': DROPOUT, 'EPOCHS': EPOCHS, "LR": LR,
                     'DILATATION': DILATION, 'BATCH': BATCH, 'method': 'random',
+                    'LEAKY_ALPHA':LEAKY_ALPHA,
+                    'LOSS_3D_W' : LOSS_3D_W,
+                    'LOSS_SEQ_W' : LOSS_SEQ_W,
                     'metric': {'name': 'loss', 'goal': 'minimize'},
                     'name': f"BioEx4_{get_time()}"}
 
@@ -140,7 +150,7 @@ def build_encoder(config=None):
 
     # first ResNet -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
     resnet_layer = resnet_1(conv1d_layer, config['RESNET_1_BLOCKS'], config['RESNET_1_KERNEL_SIZE'],
-                            config['RESNET_1_KERNEL_NUM'])
+                            config['RESNET_1_KERNEL_NUM'],config['LEAKY_ALPHA'])
 
     # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
     conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'], config['RESNET_2_KERNEL_SIZE'],
@@ -148,15 +158,14 @@ def build_encoder(config=None):
 
     # second ResNet -> shape = (NB_MAX_LENGTH, RESNET_2_KERNEL_NUM)
     resnet_layer = resnet_2(conv1d_layer, config['RESNET_2_BLOCKS'], config['RESNET_2_KERNEL_SIZE'],
-                            config['RESNET_2_KERNEL_NUM'], config['DILATATION'])
+                            config['RESNET_2_KERNEL_NUM'], config['DILATATION'],config['LEAKY_ALPHA'])
 
     dp = layers.Dropout(config['DROPOUT'])(resnet_layer)
     conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2, config['RESNET_2_KERNEL_SIZE'],
-                                 padding="same",
-                                 activation='elu')(dp)
+                                 padding="same")(dp)
     dense = layers.Dense(utils.FEATURE_NUM)(conv1d_layer)
 
-    return dense
+    return input_layer,dense
 
 
 def plot_val_train_loss(history):
@@ -175,35 +184,38 @@ def plot_val_train_loss(history):
 
 
 
-# def get_config():
-#     sweep_config = {}
-#     sweep_config['method'] = 'bayes'
-#     sweep_config['metric'] = {'name': 'best_val_loss', 'goal': 'minimize'}
-#     sweep_config["early_terminate"]= {
-#         "type": "hyperband",
-#         "min_iter": 2,
-#         "eta": 2,
-#     }
+def get_config():
+    sweep_config = {}
+    sweep_config['method'] = 'bayes'
+    sweep_config['metric'] = {'name': 'best_val_loss', 'goal': 'minimize'}
+    sweep_config["early_terminate"]= {
+        "type": "hyperband",
+        "min_iter": 2,
+        "eta": 2,
+    }
 
-#     sweep_config['name'] = f"BioEx4_{get_time()}"
-#     param_dict = {
-#         'RESNET_1_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
-#         'RESNET_1_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
-#         'RESNET_1_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
-#                                 'max': 64},
-#         'RESNET_2_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
-#         'RESNET_2_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
-#         'RESNET_2_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
-#                                 'max': 64},
-#         'DROPOUT': {'distribution': 'uniform', 'min': 0.001, 'max': 0.5},
-#         'EPOCHS': {'distribution': 'int_uniform', 'min': 5, 'max': 15},
-#         "LR": {'distribution': 'uniform', 'min': 0.001, 'max': 0.025},
-#         'BATCH': {'values': [16, 32, 64, 128, 256]},
-#         'DILATATION': {'values': [[1, 2, 4], [1], [1, 2], [1, 4], [1, 2, 4, 8]]}
-#     }
+    sweep_config['name'] = f"BioEx4_{get_time()}"
+    param_dict = {
+        'RESNET_1_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
+        'RESNET_1_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
+        'RESNET_1_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
+                                'max': 64},
+        'RESNET_2_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
+        'RESNET_2_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
+        'RESNET_2_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
+                                'max': 64},
+        'DROPOUT': {'distribution': 'uniform', 'min': 0.001, 'max': 0.5},
+        'EPOCHS': {'distribution': 'int_uniform', 'min': 5, 'max': 15},
+        "LR": {'distribution': 'uniform', 'min': 0.001, 'max': 0.025},
+        "leakyAlpha": {'distribution': 'uniform', 'min': 0.001, 'max': 0.1},
+        'BATCH': {'values': [16, 32, 64, 128, 256]},
+        'LOSS_3D_W': {'distribution': 'uniform', 'min': 0.7, 'max': 1},
+        'LOSS_SEQ_W': {'distribution': 'uniform', 'min': 0.1, 'max': 1},
+        'DILATATION': {'values': [[1, 2, 4], [1], [1, 2], [1, 4], [1, 2, 4, 8]]}
+    }
 
-#     sweep_config['parameters'] = param_dict
-#     return sweep_config
+    sweep_config['parameters'] = param_dict
+    return sweep_config
 
 # class WandbCallback(tf.keras.callbacks.Callback):
 #     def __init__(self, fold):

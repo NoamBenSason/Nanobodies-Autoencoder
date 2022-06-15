@@ -129,7 +129,7 @@ def get_default_config():
     return sweep_config
 
 
-def build_decoder(config=None):
+def build_decoder(input_layer,config=None):
     """
     builds the neural network architecture as shown in the exercise.
     :return: a Keras Model
@@ -138,7 +138,6 @@ def build_decoder(config=None):
         config = get_default_config()
 
     # input, shape (NB_MAX_LENGTH,FEATURE_NUM)
-    input_layer = tf.keras.Input(shape=(utils.NB_MAX_LENGTH, utils.FEATURE_NUM))
 
     # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
     conv1d_layer = layers.Conv1D(config['RESNET_1_KERNEL_NUM'], config['RESNET_1_KERNEL_SIZE'],
@@ -162,7 +161,7 @@ def build_decoder(config=None):
                                  activation='elu')(dp)
     dense = layers.Dense(15)(conv1d_layer)
 
-    return tf.keras.Model(input_layer, dense)
+    return dense
 
 
 def plot_val_train_loss(history):
