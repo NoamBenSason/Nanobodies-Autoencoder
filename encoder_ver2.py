@@ -13,10 +13,6 @@
 # __________________________________________________________________________________________________
 import tensorflow as tf
 from tensorflow.keras import layers
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import KFold
-# import wandb
 from datetime import datetime
 import utils
 
@@ -166,25 +162,11 @@ def build_encoder(config=None):
     conv1d_layer = layers.Conv1D(config['RESNET_2_KERNEL_NUM'] // 2,
                                  config['RESNET_2_KERNEL_SIZE'],
                                  padding="same")(dp)
-    dense = layers.Dense(utils.FEATURE_NUM)(conv1d_layer)
+    dense = layers.Dense(utils.FEATURE_NUM,name="seq_dense")(conv1d_layer)
 
     return input_layer, dense
 
 
-def plot_val_train_loss(history):
-    """
-    plots the train and validation loss of the model at each epoch, saves it in 'model_loss_history.png'
-    :param history: history object (output of fit function)
-    :return: None
-    """
-    ig, axes = plt.subplots(1, 1, figsize=(15, 3))
-    axes.plot(history.history['loss'], label='Training loss')
-    axes.plot(history.history['val_loss'], label='Validation loss')
-    axes.legend()
-    axes.set_title("Train and Val MSE loss")
-
-    plt.savefig(
-        f"/content/drive/MyDrive/ColabNotebooks/model_loss_history{get_time()}.png")
 
 # def get_config():
 #     sweep_config = {}
