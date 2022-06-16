@@ -5,7 +5,7 @@ import os
 
 
 def predict_single_sample(model, pdb_name, is_print):
-    pdb_file_path = f"Ex4Data/{pdb_name}.pdb"
+    pdb_file_path = f"Ex4Data/{pdb_name}.pdb" #todo get a path and not a pdb name
     test_sample = utils.generate_label(pdb_file_path)
     test_sample = test_sample[None, :]
     structure_out, seq_out2 = model.predict(test_sample)
