@@ -30,7 +30,6 @@ def main():
     plt.legend()
     plt.xlabel("MSE of structure")
     plt.ylabel("CCE of sequence")
-    plt.show()
     plt.savefig("loss_scatter_plot.png")
 
 
