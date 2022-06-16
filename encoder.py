@@ -17,11 +17,17 @@ import utils
 
 
 def resnet_block(input_layer, kernel_size, kernel_num, leaky_alpha, dialation=1):
-    # bn1 = layers.BatchNormalization()(input_layer)
+    """
+    create resnet block for encoder block
+    :param input_layer: input for layer
+    :param kernel_size: kernel size
+    :param kernel_num: number of kernel
+    :param dialation: dialation for block
+    :return: output of block
+    """
     conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same',
                                   dilation_rate=dialation)(input_layer)
     leakyRelu1 = layers.LeakyReLU(alpha=leaky_alpha)(conv1d_layer1)
-    # bn2 = layers.BatchNormalization()(conv1d_layer1)
     conv1d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same',
                                   dilation_rate=dialation)(leakyRelu1)
     leakyRelu2 = layers.LeakyReLU(alpha=leaky_alpha)(conv1d_layer2)
@@ -43,7 +49,7 @@ def resnet_1(input_layer, block_num, kernel_size,
     return last_layer_output
 
 
-def resnet_2(input_layer, block_num, kernel_size,kernel_num, dial_lst, leaky_alpha):
+def resnet_2(input_layer, block_num, kernel_size, kernel_num, dial_lst, leaky_alpha):
     """
     Dilated ResNet layer - input -> BatchNormalization -> dilated Conv1D -> Relu -> BatchNormalization -> dilated Conv1D -> Relu -> Add
     :param input_layer: input layer for the ResNet
@@ -56,9 +62,6 @@ def resnet_2(input_layer, block_num, kernel_size,kernel_num, dial_lst, leaky_alp
             last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, leaky_alpha, d)
 
     return last_layer_output
-
-
-
 
 
 def build_encoder(config=None):
@@ -100,5 +103,3 @@ def build_encoder(config=None):
     dense = layers.Dense(utils.FEATURE_NUM, name="seq_dense")(conv1d_layer)
 
     return input_layer, dense
-
-
