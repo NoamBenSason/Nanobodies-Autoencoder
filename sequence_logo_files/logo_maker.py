@@ -1,4 +1,3 @@
-
 """
 this script create sequence logo using a probability matrix
 """
@@ -9,11 +8,11 @@ import logomaker as lm
 import matplotlib.pyplot as plt
 plt.ion()
 
-def main():
-    crp_df = pd.read_csv("prob_csv_1dlf_model_2.csv")
-    crp_df = crp_df.drop(["pos"], axis=1)
-    crp_df.head()
 
+def main():
+    # read prob matrix of specific model architecture and create data frame
+    prob_df = pd.read_csv("prob_csv_1dlf_model_2.csv")
+    prob_df = prob_df.drop(["pos"], axis=1)
 
     # create and style logo
     colors_dict = {"A":"#FEA89A", "C":"#FCE59C", "D":"#C0FE9A", "E":"#9CFCD7",
@@ -22,7 +21,7 @@ def main():
                    "P":"#FB8815", "Q":"#AD5803", "R":"#9AA907", "S":"#06AA2D",
                    "T":"#0587AB", "W":"#1202AE", "Y":"#A808AC", "V":"#5C045E",
                    "X":"#080008", "-":"#080008"}
-    logo = lm.Logo(df=crp_df,
+    logo = lm.Logo(df=prob_df,
                    font_name='Hobo Std',
                    fade_below=0,
                    shade_below=0,
@@ -31,7 +30,6 @@ def main():
     # set axes labels
     logo.ax.set_xlabel('Position',fontsize=14)
     logo.ax.set_ylabel("Probability", labelpad=-1,fontsize=14)
-
 
 
 if __name__ == '__main__':
