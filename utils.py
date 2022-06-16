@@ -162,6 +162,3 @@ if __name__ == '__main__':
     np.save(f"train_labels.npy", np.array(labels_matrix))
 
     print(f"Number of samples: {len(input_matrix)}")
-
-input = np.load("train_input.npy")
-labels = np.load("train_labels.npy")

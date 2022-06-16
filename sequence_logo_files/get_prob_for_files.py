@@ -1,6 +1,6 @@
-# NbTestSet/1dlf.pdb
-# NbTestSet/2v17.pdb
-# NbTestSet/3lmj.pdb
+"""
+this script creates a prob matrix using our models
+"""
 import tensorflow as tf
 import numpy as np
 import pandas as pd
@@ -21,6 +21,7 @@ def create_df_for_log(aa, prob):
     df["pos"] = df["pos"].astype(np.int32)
     return df
 
+
 def main():
     models = [tf.keras.models.load_model(file_model) for file_model in
               file_models]
@@ -33,14 +34,13 @@ def main():
             out = out[0, :len(aa)]
             prob = tf.nn.softmax(out, axis=1)
             df = create_df_for_log(aa, prob)
-            df.to_csv(f"prob_csv_{file}_model_{i}.csv",index=False,columns=cols)
+            df.to_csv(f"prob_csv_{file}_model_{i}.csv", index=False,
+                      columns=cols)
         OHE = utils.generate_input(rel_path)
-        df = create_df_for_log(aa,OHE[:len(aa)])
-        df.to_csv(f"prob_csv_{file}_OHE.csv",index=False,columns=cols)
+        df = create_df_for_log(aa, OHE[:len(aa)])
+        df.to_csv(f"prob_csv_{file}_OHE.csv", index=False, columns=cols)
         break
-
 
 
 if __name__ == '__main__':
     main()
-
