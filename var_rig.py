@@ -23,7 +23,7 @@ if __name__ == '__main__':
         valid = False
         continue
 
-    # find sequences - check hoe to read from csv TODO
+    # find sequences - check how to read from csv TODO
     pdb_file_name = pdb + "_CDRS.csv"
     aa_seq = pd.read_csv(pdb_file_name)[1][1]
     cdr1_seq = pd.read_csv(pdb_file_name)[1][3]
