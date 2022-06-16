@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 
 plt.ion()
 
-<<<<<<< HEAD
-
 def main():
     crp_df = pd.read_csv("prob_csv_1dlf_model_2.csv")
     crp_df = crp_df.drop(["pos"], axis=1)
