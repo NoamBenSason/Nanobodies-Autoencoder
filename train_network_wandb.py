@@ -3,10 +3,10 @@ import tensorflow as tf
 import utils
 from utils import matrix_to_pdb
 import datetime
-from encoder_ver1 import build_encoder as be1
-from encoder_ver2 import build_encoder as be2
-from encoder_ver3 import build_encoder as be3
-from decoder_ex4 import build_decoder
+from encoder import build_encoder as be1
+from encoder_attn import build_encoder as be2
+from encoder_mhattn import build_encoder as be3
+from decoder import build_decoder
 import wandb
 
 ENTITY = "noambs"  # please change to your username when using wandb
