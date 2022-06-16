@@ -20,24 +20,10 @@ from datetime import datetime
 # import import_ipynb
 import utils
 
-###############################################################################
-#                                                                             #
-#              Parameters you can change, but don't have to                   #
-#                                                                             #
-###############################################################################
-
-
 # number of ResNet blocks for the first ResNet and the kernel size.
 RESNET_1_BLOCKS = 1
 RESNET_1_KERNEL_SIZE = 9
-RESNET_1_KERNEL_NUM = 16
-
-###############################################################################
-#                                                                             #
-#                        Parameters you need to choose                        #
-#                                                                             #
-###############################################################################
-
+RESNET_1_KERNEL_NUM = 15
 
 # number of ResNet blocks for the second ResNet, dilation list to repeat and the kernel size.
 
@@ -55,16 +41,20 @@ EPOCHS = 9
 LR = 0.0019210418506367384  # good start may be 0.0001/0.001/0.01
 BATCH = 16  # good start may be 32/64/128
 
-save_dir = "BestFits/"
-model_name = "selected_model2_polar_5"
-
-
 def get_time():
     now = datetime.now()
     return now.strftime("%d-%m-%Y__%H-%M-%S")
 
 
 def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
+    """
+    create resnet block for decoder
+    :param input_layer: input for layer
+    :param kernel_size: kernel size
+    :param kernel_num: number of kernel
+    :param dialation: dialation for block
+    :return: output of block
+    """
     bn1 = layers.BatchNormalization()(input_layer)
     conv1d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same', activation='relu',
                                   dilation_rate=dialation)(bn1)
@@ -83,7 +73,7 @@ def resnet_1(input_layer, block_num, kernel_size,
     """
     last_layer_output = input_layer
 
-    for i in range(block_num):
+    for _ in range(block_num):
         last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num)
 
     return last_layer_output
@@ -98,7 +88,7 @@ def resnet_2(input_layer, block_num, kernel_size,
     """
     last_layer_output = input_layer
 
-    for i in range(block_num):
+    for _ in range(block_num):
         for d in dial_lst:
             last_layer_output = resnet_block(last_layer_output, kernel_size, kernel_num, d)
 
