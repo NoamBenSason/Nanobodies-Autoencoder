@@ -16,24 +16,10 @@ from tensorflow.keras import layers
 from datetime import datetime
 import utils
 
-###############################################################################
-#                                                                             #
-#              Parameters you can change, but don't have to                   #
-#                                                                             #
-###############################################################################
-
-
 # number of ResNet blocks for the first ResNet and the kernel size.
 RESNET_1_BLOCKS = 1
 RESNET_1_KERNEL_SIZE = 9
 RESNET_1_KERNEL_NUM = 15
-
-###############################################################################
-#                                                                             #
-#                        Parameters you need to choose                        #
-#                                                                             #
-###############################################################################
-
 
 # number of ResNet blocks for the second ResNet, dilation list to repeat and the kernel size.
 
@@ -61,12 +47,9 @@ def get_time():
 
 
 def resnet_block(input_layer, kernel_size, kernel_num, dialation=1):
-    # bn1 = layers.BatchNormalization()(input_layer)
-    # TODO make alpha param
     conv2d_layer1 = layers.Conv1D(kernel_num, kernel_size, padding='same',
                                   dilation_rate=dialation)(input_layer)
     leakyRelu1 = layers.LeakyReLU(alpha=0.3)(conv2d_layer1)
-    # bn2 = layers.BatchNormalization()(conv1d_layer1)
     conv2d_layer2 = layers.Conv1D(kernel_num, kernel_size, padding='same',
                                   dilation_rate=dialation)(leakyRelu1)
     leakyRelu2 = layers.LeakyReLU(alpha=0.3)(conv2d_layer2)
@@ -137,10 +120,6 @@ def build_encoder(config=None):
     # input, shape (NB_MAX_LENGTH,FEATURE_NUM)
     input_layer = tf.keras.Input(shape=(utils.NB_MAX_LENGTH, utils.OUTPUT_SIZE))
 
-    # Conv1D -> shape = (NB_MAX_LENGTH, RESNET_1_KERNEL_NUM)
-    # conv1d_layer = layers.Conv1D(config['RESNET_1_KERNEL_NUM'], config['RESNET_1_KERNEL_SIZE'],
-    #                              padding='same')(input_layer)
-
     attention = tf.keras.layers.MultiHeadAttention(num_heads=8,
                                                    key_dim=128)(input_layer,
                                                        input_layer)
@@ -170,98 +149,3 @@ def build_encoder(config=None):
 
     return input_layer, dense
 
-# def get_config():
-#     sweep_config = {}
-#     sweep_config['method'] = 'bayes'
-#     sweep_config['metric'] = {'name': 'best_val_loss', 'goal': 'minimize'}
-#     sweep_config["early_terminate"]= {
-#         "type": "hyperband",
-#         "min_iter": 2,
-#         "eta": 2,
-#     }
-
-#     sweep_config['name'] = f"BioEx4_{get_time()}"
-#     param_dict = {
-#         'RESNET_1_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
-#         'RESNET_1_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
-#         'RESNET_1_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
-#                                 'max': 64},
-#         'RESNET_2_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
-#         'RESNET_2_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
-#         'RESNET_2_KERNEL_NUM': {'distribution': 'int_uniform', 'min': 8,
-#                                 'max': 64},
-#         'DROPOUT': {'distribution': 'uniform', 'min': 0.001, 'max': 0.5},
-#         'EPOCHS': {'distribution': 'int_uniform', 'min': 5, 'max': 15},
-#         "LR": {'distribution': 'uniform', 'min': 0.001, 'max': 0.025},
-#         'BATCH': {'values': [16, 32, 64, 128, 256]},
-#         'DILATATION': {'values': [[1, 2, 4], [1], [1, 2], [1, 4], [1, 2, 4, 8]]}
-#     }
-
-#     sweep_config['parameters'] = param_dict
-#     return sweep_config
-
-# class WandbCallback(tf.keras.callbacks.Callback):
-#     def __init__(self, fold):
-#         super(WandbCallback, self).__init__()
-#         self.fold = fold
-
-#     def on_epoch_end(self, epoch, logs=None):
-#         wandb.log({'loss': logs['loss'], 'val_loss': logs['val_loss'], 'fold':
-#             self.fold, 'epoch': epoch})
-
-
-# def models_selection(config=None):
-#     if config is None:
-#         config = get_default_config()
-#     with wandb.init(config=config) as run:
-
-#         # _______________loading the data_______________
-#         config = wandb.config
-#         input = np.load("train_input.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,FEATURE_NUM) - data
-#         labels = np.load("train_labels.npy")  # numpy array of shape (1974,NB_MAX_LENGTH,OUTPUT_SIZE) - labels
-#         save_dir = "BestFits/"
-#         model_name = run.name
-#         fold_var = 1
-#         kf = KFold(n_splits=5, shuffle=True, random_state=0)
-#         my_optimizer = tf.keras.optimizers.Adam(learning_rate=config['LR'])
-#         loss = 0
-#         losses = np.zeros(5)
-#         for t_idx, v_idx in kf.split(input, labels):
-#             X_t, X_v = input[t_idx], input[v_idx]
-#             y_t, y_v = labels[t_idx], labels[v_idx]
-
-#             model = build_network(config)
-#             # _______________compiling______________
-
-#             model.compile(optimizer=my_optimizer, loss='mean_squared_error')
-
-#             # _____________creating callbacks_____________
-#             checkpoint = tf.keras.callbacks.ModelCheckpoint(f"{save_dir}"
-#                                                             f"{model_name}"
-#                                                             f"{fold_var}.ckpt",
-#                                                             monitor='val_loss',
-#                                                             save_best_only=True, mode='min')
-
-#             callbacks_list = [checkpoint, WandbCallback(fold_var)]
-
-#             # _____________fitting the model______________
-#             history = model.fit(X_t, y_t,
-#                                 epochs=config['EPOCHS'],
-#                                 callbacks=callbacks_list,
-#                                 batch_size=config['BATCH'],
-#                                 validation_data=(X_v, y_v))
-
-
-#             # _____________evaluate the model_____________
-#             best_model = tf.keras.models.load_model(f"{save_dir}"
-#                                                     f"{model_name}"
-#                                                     f"{fold_var}.ckpt")
-
-#             l = best_model.evaluate(X_v, y_v)
-#             losses[fold_var - 1] = l
-#             loss += l/5
-#             wandb.log({'best_val_loss': loss})
-#             # loss[fold_var - 1] = best_model.evaluate(X_v, y_v)
-#             fold_var += 1
-#             tf.keras.backend.clear_session()
-#         wandb.log({'mean_loss': loss,'std':np.std(losses)})
