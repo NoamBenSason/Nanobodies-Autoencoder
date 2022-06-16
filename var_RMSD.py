@@ -8,15 +8,13 @@ transform = "/cs/staff/dina/utils/pdb_trans"
 get_frag_chain = "/cs/staff/dina/utils/get_frag_chain.Linux"
 
 
+def calc(ref_pdb, predicted_pdb):
 
-if __name__ == '__main__':
-    ref_pdb = sys.argv[1]
-    predicted_pdb = sys.argv[2]
     # renumber ref chain if this is the first model
     sp.run(f"{renumber} {ref_pdb} > ref_renumber.pdb", shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
     # calculate the total RMSD
     # try:
-    rmsd = float(sp.run(f"{rmsd_prog} -t ref_renumber.pdb {predicted_pdb} | tail -n1 ", shell=True, capture_output=True).stdout.strip())
+    # rmsd = float(sp.run(f"{rmsd_prog} -t ref_renumber.pdb {predicted_pdb} | tail -n1 ", shell=True, capture_output=True).stdout.strip())
     # rmsd program failed
     # except ValueError:
     #     print(pdb, "error")
