@@ -1,6 +1,6 @@
 import fnmatch
 import pandas as pd
-from var_RMSD import calc
+from calc_positions import calc
 from os import listdir
 from os.path import isfile,join
 
