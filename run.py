@@ -2,10 +2,14 @@ import tensorflow as tf
 import utils
 import argparse
 import os
+from pathlib import Path
 
 
-def predict_single_sample(model, pdb_name, is_print):
-    pdb_file_path = f"Ex4Data/{pdb_name}.pdb" #todo get a path and not a pdb name
+
+def predict_single_sample(model, pdb_file_path, is_print):
+    pdb_name = Path(pdb_file_path).name
+    pdb_name = os.path.splitext(pdb_name)[0]
+
     test_sample = utils.generate_label(pdb_file_path)
     test_sample = test_sample[None, :]
     structure_out, seq_out2 = model.predict(test_sample)
@@ -47,7 +51,7 @@ def main():
 
     args = parser.parse_args()
     model_type = args.model_type[0]
-    pdb_name = args.pdb_name[0]
+    pdb_path = args.pdb_name[0]
     is_print = args.print_seq
 
     if model_type == "N":
@@ -60,7 +64,7 @@ def main():
         print("Model type does not exist")
         return
 
-    predict_single_sample(best_model, pdb_name, is_print)
+    predict_single_sample(best_model, pdb_path, is_print)
 
 
 if __name__ == '__main__':
