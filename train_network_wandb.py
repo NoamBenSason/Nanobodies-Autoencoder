@@ -3,32 +3,34 @@ import tensorflow as tf
 import utils
 from utils import matrix_to_pdb
 import datetime
-from encoder_ver1 import build_encoder as be1
-from encoder_ver2 import build_encoder as be2
-from encoder_ver3 import build_encoder as be3
-from decoder_ex4 import build_decoder
+from encoder import build_encoder as be1
+from encoder_attn import build_encoder as be2
+from encoder_mhattn import build_encoder as be3
+from decoder import build_decoder
 import wandb
+
+ENTITY = "noambs"  # please change to your username when using wandb
 
 VER_DICT = {1: be1, 2: be2, 3: be3}
 
-######################## Defualt Params ####################
+# __________________________ Defualt Params __________________________
 RESNET_1_BLOCKS = 1
 RESNET_1_KERNEL_SIZE = 9
 RESNET_1_KERNEL_NUM = 15
 
 RESNET_2_BLOCKS = 5
-RESNET_2_KERNEL_SIZE = 5  # good start may be 3/5
+RESNET_2_KERNEL_SIZE = 5
 RESNET_2_KERNEL_NUM = 28  # DO NOT MAKE IT 1!
 DILATION = [1]
 WANTED_M = len(DILATION)  # len of DILATION to be randomize by 'wandb' tool
 
 # percentage of dropout for the dropout layer
-DROPOUT = 0.289580549283963  # good start may be 0.1-0.5
+DROPOUT = 0.289580549283963
 
 # number of epochs, Learning rate and Batch size
 EPOCHS = 50
-LR = 0.0019210418506367384  # good start may be 0.0001/0.001/0.01
-BATCH = 16  # good start may be 32/64/128
+LR = 0.0019210418506367384
+BATCH = 16
 
 LEAKY_ALPHA = 0
 LOSS_3D_W = 1
@@ -60,7 +62,6 @@ def get_default_config():
                     'LOSS_3D_W': LOSS_3D_W,
                     'LOSS_SEQ_W': LOSS_SEQ_W,
                     'CLIP': CLIP,
-                    'regularized': 'vanilla',
                     'DROP_OUT_TYPE': 'vanilla',
                     'metric': {'name': 'loss', 'goal': 'minimize'},
                     'VER': 3,
@@ -80,7 +81,7 @@ def get_config():
     }
 
     sweep_config['name'] = f"BioEx4_{get_time()}"
-    param_dict = {  # todo add more for decoder
+    param_dict = {
         'RESNET_1_BLOCKS': {'distribution': 'int_uniform', 'min': 1, 'max': 5},
         'RESNET_1_KERNEL_SIZE': {'values': [3, 5, 7, 9]},
         'RESNET_1_KERNEL_NUM': {'value': 15},
@@ -97,7 +98,6 @@ def get_config():
         'LOSS_SEQ_W': {'distribution': 'uniform', 'min': 0.1, 'max': 1},
         'DILATATION': {'values': [[1, 2, 4], [1], [1, 2], [1, 4], [1, 2, 4, 8]]},
         'CLIP': {'distribution': 'uniform', 'min': 0.9, 'max': 1.1},
-        'regularized': {'values': ["vanilla", "orthogonal", "l2"]},
         'DROP_OUT_TYPE': {'values': ["vanilla", "gaussian"]},
         'VER': {'values': [1, 2, 3]}
 
@@ -105,9 +105,6 @@ def get_config():
 
     sweep_config['parameters'] = param_dict
     return sweep_config
-
-
-
 
 
 def hardmax(x: np.ndarray, axis: int = -1) -> np.ndarray:
@@ -151,7 +148,8 @@ def train(config=None):
         # _______________compiling______________
 
         model.compile(optimizer=my_optimizer, loss=['mean_squared_error',
-                                                    tf.keras.losses.CategoricalCrossentropy(from_logits=True)],
+                                                    tf.keras.losses.CategoricalCrossentropy(
+                                                        from_logits=True)],
                       loss_weights=[config['LOSS_3D_W'], config['LOSS_SEQ_W']])
 
         # _____________creating callbacks_____________
@@ -164,13 +162,12 @@ def train(config=None):
                             callbacks=callbacks_list,
                             batch_size=config['BATCH'])
 
-        # plot_val_train_loss(history)
         tf.keras.models.save_model(model, save_dir + model_name)
 
         tf.keras.backend.clear_session()
 
 
 if __name__ == '__main__':
-    sweep_id = wandb.sweep(get_config(), project="Hackaton_2", entity="noambs")
+    sweep_id = wandb.sweep(get_config(), project="Hackaton", entity=ENTITY)
     wandb.agent(sweep_id, train, count=1000)
     # train()
