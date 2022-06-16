@@ -72,7 +72,8 @@ def calc(ref_pdb, predicted_pdb):
     cdr3_rmsd = float(sp.run(f"{rmsd_prog} ref_cdr3.pdb model_cdr3.pdb | tail -n1 ", shell=True, capture_output=True).stdout.strip())
 
     # TODO print to csv to do plots on
-    print(cdr1_rmsd, cdr2_rmsd, cdr3_rmsd)
+    return cdr1_rmsd, cdr2_rmsd, cdr3_rmsd
+
 
 
     # calculate frame rmsd
