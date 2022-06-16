@@ -7,8 +7,9 @@ import pandas as pd
 import utils
 
 files = ["1dlf", "2v17", "3lmj"]
-file_models = ["Best_models/distinctive_multiheaded_attn",
-               "Best_models/efficient_original", "Best_models/prime_attntion"]
+file_models = ["../Best_models/distinctive_multiheaded_attn",
+               "../Best_models/efficient_original",
+               "../Best_models/prime_attntion"]
 cols = ["pos"] + list(utils.AA_DICT.keys())
 
 if __name__ == '__main__':
