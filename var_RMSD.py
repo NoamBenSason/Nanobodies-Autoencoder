@@ -10,21 +10,24 @@ get_frag_chain = "/cs/staff/dina/utils/get_frag_chain.Linux"
 
 
 if __name__ == '__main__':
-    pdb = sys.argv[1]
+    ref_pdb = sys.argv[1]
+    predicted_pdb = sys.argv[2]
+    print(ref_pdb)
     # renumber ref chain if this is the first model
-    sp.run(f"{renumber} ref.pdb > ref_renumber.pdb", shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-
+    #TODO what should it get??????
+    sp.run(f"{renumber} {ref_pdb} > ref_renumber.pdb", shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    print("after renum")
     # calculate the total RMSD
-    try:
-        rmsd = float(sp.run(f"{rmsd_prog} -t ref_renumber.pdb model.pdb | tail -n1 ", shell=True, capture_output=True).stdout.strip())
+    # try:
+    rmsd = float(sp.run(f"{rmsd_prog} -t ref_renumber.pdb {predicted_pdb} | tail -n1 ", shell=True, capture_output=True).stdout.strip())
     # rmsd program failed
-    except ValueError:
-        print(pdb, "error")
-        valid = False
-        continue
-
+    # except ValueError:
+    #     print(pdb, "error")
+    #     valid = False
+    #     continue
+    print("hi")
     # find sequences - check hoe to read from csv TODO
-    pdb_file_name = pdb + "_CDRS.csv"
+    pdb_file_name = ref_pdb + "_CDRS.csv"
     aa_seq = pd.read_csv(pdb_file_name)[1][1]
     cdr1_seq = pd.read_csv(pdb_file_name)[1][3]
     cdr2_seq = pd.read_csv(pdb_file_name)[1][4]
