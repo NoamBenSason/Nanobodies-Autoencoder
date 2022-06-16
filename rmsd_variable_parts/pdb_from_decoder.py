@@ -1,5 +1,8 @@
+"""
+this script create all 3D models for the test set using our models
+saving them to appropriate folders
+"""
 import tensorflow as tf
-import numpy as np
 from tqdm import tqdm
 import os
 import utils
