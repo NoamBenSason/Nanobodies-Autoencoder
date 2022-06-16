@@ -140,10 +140,6 @@ def matrix_to_pdb(seq, coord_matrix, pdb_name):
         pdb_file.write(END_LINE)
 
 if __name__ == '__main__':
-
-    #  you can make all the data for the network in this section.
-    # you can save the matrices to your drive and load them in your google colab file later.
-
     input_matrix = []
     labels_matrix = []
     data_path = "Ex4Data"
