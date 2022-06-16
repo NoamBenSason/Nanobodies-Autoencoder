@@ -19,7 +19,6 @@ import tensorflow as tf
 from tensorflow.keras import layers
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.model_selection import KFold
 # import wandb
 from datetime import datetime
 

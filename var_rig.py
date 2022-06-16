@@ -4,8 +4,8 @@ import pandas as pd
 
 renumber = "/cs/staff/dina/utils/srcs/renumber/renumber"
 rmsd_prog = "/cs/staff/dina/utils/rmsd"
-transform =
-get_frag_chain =
+transform = "/cs/staff/dina/utils/pdb_trans"
+get_frag_chain = "/cs/staff/dina/utils/get_frag_chain.Linux"
 
 
 
