@@ -8,7 +8,7 @@ model_list = ["rmsd_variable_parts/attn_out_test_pdbs", "rmsd_variable_parts/mul
 files = fnmatch.filter(listdir("NbTestSet"), "*.pdb")
 test_samples_list = [f for f in files]
 if __name__ == '__main__':
-    df = pd.DataFrame(columns=("model", "sample", "cdr1", "cdr2", "cdr3"))
+    df = pd.DataFrame(columns=("model", "sample", "cdr1_start", "cdr1_end", "cdr2_start", "cdr2_end", "cdr3_start", "cdr3_end"))
     i = 0
     for model in model_list:
         for sample in test_samples_list:
