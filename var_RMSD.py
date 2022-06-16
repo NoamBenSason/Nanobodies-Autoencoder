@@ -9,18 +9,17 @@ get_frag_chain = "/cs/staff/dina/utils/get_frag_chain.Linux"
 
 
 def calc(ref_pdb, predicted_pdb):
+    """
+    Calculates the RMSDs for cdr1, cdr2 and cdr3, given the reference pdb file
+    and the pdb file of the prediction.
+    :param ref_pdb: The reference pdb file.
+    :param predicted_pdb: The pdb file of the prediction
+    :return: the RMSDs for cdr1, cdr2 and cdr3, respectively
+    """
 
     # renumber ref chain if this is the first model
     sp.run(f"{renumber} {ref_pdb} > ref_renumber.pdb", shell=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
-    # calculate the total RMSD
-    # try:
-    # rmsd = float(sp.run(f"{rmsd_prog} -t ref_renumber.pdb {predicted_pdb} | tail -n1 ", shell=True, capture_output=True).stdout.strip())
-    # rmsd program failed
-    # except ValueError:
-    #     print(pdb, "error")
-    #     valid = False
-    #     continue
-    # find sequences - check hoe to read from csv TODO
+
     pdb_file_name = ref_pdb + "_CDRS.csv"
     df = pd.read_csv(pdb_file_name)
     aa_seq = df.iloc[0, 1]
@@ -71,13 +70,8 @@ def calc(ref_pdb, predicted_pdb):
     cdr2_rmsd = float(sp.run(f"{rmsd_prog} ref_cdr2.pdb model_cdr2.pdb | tail -n1 ", shell=True, capture_output=True).stdout.strip())
     cdr3_rmsd = float(sp.run(f"{rmsd_prog} ref_cdr3.pdb model_cdr3.pdb | tail -n1 ", shell=True, capture_output=True).stdout.strip())
 
-    # TODO print to csv to do plots on
+
     return cdr1_rmsd, cdr2_rmsd, cdr3_rmsd
 
 
 
-    # calculate frame rmsd
-    # n = len(sequence)
-    # n1, n2, n3 = (cdr1_end - cdr1_start ), (cdr2_end - cdr2_start ), (cdr3_end - cdr3_start )
-    # m = n - n1 - n2 - n3
-    # fr_rmsd = (((rmsd_all_fr*2)*n - (cdr1_rmsd2)*n1 - (cdr2_rmsd2)*n2 - (cdr3_rmsd2)*n3) / m) * 0.5
