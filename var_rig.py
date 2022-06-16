@@ -21,7 +21,6 @@ if __name__ == '__main__':
     except ValueError:
         print(pdb, "error")
         valid = False
-        continue
 
     # find sequences - check how to read from csv TODO
     pdb_file_name = pdb + "_CDRS.csv"
