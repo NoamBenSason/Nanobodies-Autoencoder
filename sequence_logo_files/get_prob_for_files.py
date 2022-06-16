@@ -16,7 +16,7 @@ if __name__ == '__main__':
               file_models]
     for file in files:
         for i, model in enumerate(models):
-            rel_path = f"NbTestSet/{file}.pdb"
+            rel_path = f"../NbTestSet/{file}.pdb"
             coord_mat = utils.generate_label(rel_path)[None, :]
             aa, _ = utils.get_seq_aa(rel_path, utils.NB_CHAIN_ID)
             _, out = model.predict(coord_mat)
