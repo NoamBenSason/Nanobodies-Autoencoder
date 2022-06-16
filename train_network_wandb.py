@@ -107,14 +107,7 @@ def get_config():
     return sweep_config
 
 
-def check_out_single_sample(model):
-    test_sample = utils.generate_label("1A2Y_1.pdb")
-    test_sample = test_sample[None, :]
-    out1, out2 = model.predict(test_sample)
-    seq = np.argmax(out2[0], axis=1)
-    seq_str, real_seq_ind = utils.generate_ind("1A2Y_1.pdb")
-    print(np.mean(seq == real_seq_ind))
-    matrix_to_pdb(seq_str, out1[0, :, :], "test1A2Y")
+
 
 
 def hardmax(x: np.ndarray, axis: int = -1) -> np.ndarray:
