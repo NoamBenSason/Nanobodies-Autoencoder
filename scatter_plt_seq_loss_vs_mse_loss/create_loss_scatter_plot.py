@@ -1,3 +1,7 @@
+"""
+this script creates a scatter plot comparing Categorial cross entropy of models
+and MSE of models on test set
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
