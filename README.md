@@ -1,6 +1,5 @@
-# Hackathon project
-## Comparing different autoencoder architectures in order to predict nanobodies sequences from their 3D structure
-
+# Comparing different autoencoder architectures in order to predict nanobodies sequences from their 3D structure
+## Hackathon project
 
 For project report see - 'autoencoder_architectures_to_predict_nanobodies_sequences.pdf'
 
