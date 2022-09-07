@@ -1,4 +1,4 @@
-# Hackthon project
+# Hackathon project
 ## Comparing different autoencoder architectures in order to predict nanobodies sequences from their 3D structure
 
 
